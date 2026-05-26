@@ -26,7 +26,7 @@ interface ObjectPool<T> {
 
     /** Borrow for the duration of `fn`, then auto-release.  */
     @Borrows
-    fun <V> use(fn: Function<T?, V?>): V? {
+    fun <V> use(fn: Function<T, V>): V {
         val obj = acquire()
         try {
             return fn.apply(obj)
@@ -47,19 +47,19 @@ interface ObjectPool<T> {
 
     /** Per-thread deque; no synchronization. Must release on the acquiring thread.  */
     class ThreadLocalPool<T> internal constructor(
-        private val factory: Supplier<T?>,
+        private val factory: Supplier<T>,
         private val reset: Consumer<T>?,
         private val onDiscard: Consumer<T>?,
         private val max: Int
-    ) : ObjectPool<T?> {
+    ) : ObjectPool<T> {
         private val tl: ThreadLocal<ArrayDeque<T>> = ThreadLocal.withInitial { ArrayDeque() }
 
-        override fun acquire(): T? {
+        override fun acquire(): T {
             val obj: T? = tl.get().firstOrNull()
             return obj ?: factory.get()
         }
 
-        override fun release(obj: T?) {
+        override fun release(obj: T) {
             if (obj == null) return
             reset?.accept(obj)
             val d = tl.get()
@@ -70,21 +70,21 @@ interface ObjectPool<T> {
 
     /** Lock-free cross-thread pool, size-bounded via CAS.  */
     class SharedPool<T> internal constructor(
-        private val factory: Supplier<T?>,
+        private val factory: Supplier<T>,
         private val reset: Consumer<T>?,
         private val onDiscard: Consumer<T>?,
         private val max: Int
-    ) : ObjectPool<T?> {
+    ) : ObjectPool<T> {
         private val deque = ConcurrentLinkedDeque<T & Any>()
         private val size = AtomicInteger()
 
-        override fun acquire(): T? {
+        override fun acquire(): T {
             val obj = deque.pollFirst() ?: return factory.get()
             size.decrementAndGet()
             return obj
         }
 
-        override fun release(obj: T?) {
+        override fun release(obj: T) {
             if (obj == null) return
             reset?.accept(obj)
             var s: Int
@@ -102,27 +102,27 @@ interface ObjectPool<T> {
     companion object {
         @JvmStatic
         fun <T> threadLocal(
-            factory: Supplier<T?>, reset: Consumer<T>?,
+            factory: Supplier<T>, reset: Consumer<T>?,
             onDiscard: Consumer<T>?, maxPerThread: Int
-        ): ObjectPool<T?> {
+        ): ObjectPool<T> {
             return ThreadLocalPool(factory, reset, onDiscard, maxPerThread)
         }
 
         @JvmStatic
-        fun <T> threadLocal(factory: Supplier<T?>, maxPerThread: Int): ObjectPool<T?> {
+        fun <T> threadLocal(factory: Supplier<T>, maxPerThread: Int): ObjectPool<T> {
             return ThreadLocalPool(factory, null, null, maxPerThread)
         }
 
         @JvmStatic
         fun <T> shared(
-            factory: Supplier<T?>, reset: Consumer<T>?,
+            factory: Supplier<T>, reset: Consumer<T>?,
             onDiscard: Consumer<T>?, maxSize: Int
-        ): ObjectPool<T?> {
+        ): ObjectPool<T> {
             return SharedPool(factory, reset, onDiscard, maxSize)
         }
 
         @JvmStatic
-        fun <T> shared(factory: Supplier<T?>, maxSize: Int): ObjectPool<T?> {
+        fun <T> shared(factory: Supplier<T>, maxSize: Int): ObjectPool<T> {
             return SharedPool(factory, null, null, maxSize)
         }
     }

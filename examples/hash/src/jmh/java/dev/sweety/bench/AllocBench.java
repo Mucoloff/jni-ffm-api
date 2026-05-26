@@ -42,7 +42,7 @@ public class AllocBench {
     @Benchmark
     public long pooled() {
         try (SegmentPool.Lease lease = pool.acquire()) {
-            return engine.hash(lease.segment(), SIZE);
+            return engine.hash(lease.segment(), lease.capacity());
         }
     }
 }

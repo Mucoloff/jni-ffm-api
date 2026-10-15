@@ -224,18 +224,24 @@ class NativeApiProcessor(
         val holder = holders[names.indexOf("Cpp")]
 
         fun cParam(k: Kind) = when (k) {
-            Kind.PTR -> "void*"; Kind.LONG -> "size_t"; Kind.INT -> "int32_t"; Kind.BYTE -> "uint8_t"; else -> error("cParam $k")
+            Kind.PTR -> "void*"; Kind.LONG -> "size_t"; Kind.INT -> "int32_t"; Kind.BYTE -> "uint8_t"
+            Kind.DOUBLE -> "double"; Kind.FLOAT -> "float"
+            else -> error("cParam $k")
         }
         fun cRet(k: Kind) = when (k) {
-            Kind.VOID -> "void"; Kind.PTR -> "void*"; Kind.LONG -> "uint64_t"; Kind.INT -> "int32_t"; Kind.BYTE -> "uint8_t"; else -> error("cRet $k")
+            Kind.VOID -> "void"; Kind.PTR -> "void*"; Kind.LONG -> "uint64_t"; Kind.INT -> "int32_t"; Kind.BYTE -> "uint8_t"
+            Kind.DOUBLE -> "double"; Kind.FLOAT -> "float"
+            else -> error("cRet $k")
         }
         fun jniType(k: Kind) = when (k) {
             Kind.PTR, Kind.LONG -> "jlong"; Kind.INT -> "jint"; Kind.BYTE -> "jbyte"
+            Kind.DOUBLE -> "jdouble"; Kind.FLOAT -> "jfloat"
             Kind.BYTE_ARRAY -> "jbyteArray"; Kind.LONG_ARRAY -> "jlongArray"; Kind.VOID -> "void"
         }
         fun callArg(k: Kind, v: String) = when (k) {
             Kind.PTR -> "reinterpret_cast<void*>($v)"; Kind.LONG -> "static_cast<size_t>($v)"
             Kind.INT -> "static_cast<int32_t>($v)"; Kind.BYTE -> "static_cast<uint8_t>($v)"
+            Kind.DOUBLE -> "static_cast<double>($v)"; Kind.FLOAT -> "static_cast<float>($v)"
             else -> error("callArg $k")
         }
         fun sig(symbol: String, ret: Kind, params: List<Kind>, named: Boolean) =
@@ -315,10 +321,12 @@ class NativeApiProcessor(
 
         fun jniType(k: Kind) = when (k) {
             Kind.PTR, Kind.LONG -> "jlong"; Kind.INT -> "jint"; Kind.BYTE -> "jbyte"
+            Kind.DOUBLE -> "jdouble"; Kind.FLOAT -> "jfloat"
             else -> error("rust jni type $k")
         }
         fun callArg(k: Kind, v: String) = when (k) {
             Kind.PTR -> "$v as *mut c_void"; Kind.LONG -> "$v as usize"; Kind.INT -> "$v as i32"; Kind.BYTE -> "$v as u8"
+            Kind.DOUBLE -> "$v as f64"; Kind.FLOAT -> "$v as f32"
             else -> error("rust arg $k")
         }
 
@@ -486,6 +494,8 @@ class NativeApiProcessor(
             Kind.LONG -> "return (long) $invoke;"
             Kind.INT -> "return (int) $invoke;"
             Kind.BYTE -> "return (byte) $invoke;"
+            Kind.DOUBLE -> "return (double) $invoke;"
+            Kind.FLOAT -> "return (float) $invoke;"
             else -> error("unsupported FFM return for ${m.name}")
         }
     }
@@ -536,6 +546,8 @@ class NativeApiProcessor(
             "kotlin.Long", "java.lang.Long" -> Kind.LONG
             "kotlin.Int", "java.lang.Integer" -> Kind.INT
             "kotlin.Byte", "java.lang.Byte" -> Kind.BYTE
+            "kotlin.Double", "java.lang.Double" -> Kind.DOUBLE
+            "kotlin.Float", "java.lang.Float" -> Kind.FLOAT
             "kotlin.ByteArray" -> Kind.BYTE_ARRAY
             "kotlin.LongArray" -> Kind.LONG_ARRAY
             SEGMENT -> {

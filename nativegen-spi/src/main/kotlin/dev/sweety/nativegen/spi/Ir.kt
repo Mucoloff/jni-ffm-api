@@ -61,32 +61,38 @@ class NativeMethod(
 
 /** The lowered type kinds the framework understands at the binding boundary. */
 enum class NativeType {
-    VOID, PTR, LONG, INT, BYTE, BYTE_ARRAY, LONG_ARRAY;
+    VOID, PTR, LONG, INT, BYTE, DOUBLE, FLOAT, BYTE_ARRAY, LONG_ARRAY;
 
     val isArray get() = this == BYTE_ARRAY || this == LONG_ARRAY
 
     fun loweredJava() = when (this) {
         VOID -> "void"; PTR, LONG -> "long"; INT -> "int"; BYTE -> "byte"
+        DOUBLE -> "double"; FLOAT -> "float"
         BYTE_ARRAY -> "byte[]"; LONG_ARRAY -> "long[]"
     }
 
     fun jniSig() = when (this) {
-        VOID -> "V"; PTR, LONG -> "J"; INT -> "I"; BYTE -> "B"; BYTE_ARRAY -> "[B"; LONG_ARRAY -> "[J"
+        VOID -> "V"; PTR, LONG -> "J"; INT -> "I"; BYTE -> "B"
+        DOUBLE -> "D"; FLOAT -> "F"
+        BYTE_ARRAY -> "[B"; LONG_ARRAY -> "[J"
     }
 
     fun segmentJava() = when (this) {
         VOID -> "void"; PTR -> "MemorySegment"; LONG -> "long"; INT -> "int"; BYTE -> "byte"
+        DOUBLE -> "double"; FLOAT -> "float"
         BYTE_ARRAY -> "byte[]"; LONG_ARRAY -> "long[]"
     }
 
     fun layout() = when (this) {
         PTR -> "ADDRESS"; LONG -> "JAVA_LONG"; INT -> "JAVA_INT"; BYTE -> "JAVA_BYTE"
+        DOUBLE -> "JAVA_DOUBLE"; FLOAT -> "JAVA_FLOAT"
         else -> error("no layout for $this")
     }
 
     /** Lowercased name for the native-api.json (consumed by the C++/Rust renderers). */
     fun kindName() = when (this) {
         VOID -> "void"; PTR -> "ptr"; LONG -> "long"; INT -> "int"; BYTE -> "byte"
+        DOUBLE -> "double"; FLOAT -> "float"
         BYTE_ARRAY -> "byteArray"; LONG_ARRAY -> "longArray"
     }
 }

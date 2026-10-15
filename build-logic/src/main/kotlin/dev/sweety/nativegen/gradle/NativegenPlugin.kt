@@ -26,11 +26,18 @@ class NativegenPlugin : Plugin<Project> {
         // Framework coords from project properties (known at apply() time → deps added EAGERLY,
         // which KSP's onlyIf requires). Defaults = mavenLocal/Central; for JitPack set
         // nativegen.group=com.github.Mucoloff.jni-ffm-api, nativegen.version=vX in gradle.properties.
-        val fwGroup = (findProperty("nativegen.group") as String?) ?: "dev.sweety.nativegen"
-        val fwVersion = (findProperty("nativegen.version") as String?) ?: "0.1.4"
-        dependencies.add("implementation", "$fwGroup:annotations:$fwVersion")
-        dependencies.add("implementation", "$fwGroup:nativegen-runtime:$fwVersion")
-        dependencies.add("ksp", "$fwGroup:processor:$fwVersion")
+        val hasLocalModules = rootProject.findProject(":annotations") != null
+        if (hasLocalModules) {
+            dependencies.add("implementation", project(":annotations"))
+            dependencies.add("implementation", project(":nativegen-runtime"))
+            dependencies.add("ksp", project(":processor"))
+        } else {
+            val fwGroup = (findProperty("nativegen.group") as String?) ?: "dev.sweety.nativegen"
+            val fwVersion = (findProperty("nativegen.version") as String?) ?: "0.1.4"
+            dependencies.add("implementation", "$fwGroup:annotations:$fwVersion")
+            dependencies.add("implementation", "$fwGroup:nativegen-runtime:$fwVersion")
+            dependencies.add("ksp", "$fwGroup:processor:$fwVersion")
+        }
 
         val descriptor = layout.buildDirectory.file("generated/native-api.json").get().asFile
         extensions.getByType(KspExtension::class.java).arg("native.descriptor", descriptor.absolutePath)

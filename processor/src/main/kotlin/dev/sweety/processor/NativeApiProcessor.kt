@@ -104,7 +104,7 @@ class NativeApiProcessor(
 
         if (engine != null) {
             val common = methods.filter {
-                it.strategy != null && it.jni != null && it.cabi != null
+                it.strategy != null && it.cabi != null
             }
             writeEngineBase(pkg, engine, common)
             if (engine.jniImpl.isNotEmpty()) writeEngineImpl(pkg, engine, methods, jni = true)
@@ -686,7 +686,7 @@ class NativeApiProcessor(
             import dev.sweety.Binding;
             import %iface%;
             import %session%;
-            import dev.sweety.pool.ObjectPool;
+            import dev.sweety.math.pool.ObjectPool;
             import org.jetbrains.annotations.NotNull;
             import java.lang.foreign.MemorySegment;
 
@@ -702,11 +702,11 @@ class NativeApiProcessor(
                     this.bindings = bindings;
                     this.backend = backend;
                     this.binding = binding;
-                    this.sessions = ObjectPool.threadLocal(
-                            () -> new Session(bindings.%create%()),
-                            Session::%reset%,
-                            Session::%free%,
-                            %poolSize%);
+                    this.sessions = ObjectPool.threadLocal(() -> new Session(bindings.%create%()))
+                            .reset(Session::%reset%)
+                            .onDiscard(Session::%free%)
+                            .maxSize(%poolSize%)
+                            .build();
                 }
 
             %direct%

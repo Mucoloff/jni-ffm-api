@@ -1,36 +1,24 @@
 package dev.sweety.mem;
 
-import dev.sweety.pool.Acquire;
-import dev.sweety.pool.ArrayPool;
-import dev.sweety.pool.ObjectPool;
-import dev.sweety.pool.Release;
+import dev.sweety.data.buffer.panama.SegmentBuffer;
+import dev.sweety.data.buffer.panama.SegmentBufferAllocator;
+import dev.sweety.math.pool.Acquire;
+import dev.sweety.math.pool.Release;
 
-import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 
 /**
- * Pool of reusable off-heap {@link MemorySegment}s of a fixed capacity. Each lease
- * owns a confined {@link Arena}; {@link Lease#close()} returns it to the pool
- * instead of freeing it, so a hot loop reuses the same native memory rather than
- * calling malloc/free (and allocating GC garbage) on every iteration.
- *
- * <p>Confined arenas have zero locking but must be acquired and released on the
- * same thread — matching {@link ObjectPool#threadLocal}.
- *
- * <p>Mirrors {@code dev.sweety.data.buffer.SegmentBufferAllocator.POOLED}.
+ * Pool of reusable off-heap {@link MemorySegment}s delegating to Sweety's
+ * {@link SegmentBufferAllocator#POOLED}.
  */
 public final class SegmentPool {
-    private final ArrayPool<Lease> pool;
+    private final SegmentBufferAllocator allocator;
     private final int defaultSize;
 
     public SegmentPool(int defaultSize, int maxPerThread) {
         this.defaultSize = defaultSize;
-        this.pool = ArrayPool.threadLocal(Lease::new, Lease::capacity, defaultSize, Lease::closeArena, maxPerThread);
+        this.allocator = SegmentBufferAllocator.POOLED;
     }
-
-    /**
-     * Borrow a segment of at least {@code capacity} bytes; close the lease to return it.
-     */
 
     @Acquire
     public Lease acquire() {
@@ -39,36 +27,28 @@ public final class SegmentPool {
 
     @Acquire
     public Lease acquire(int minSize) {
-        return pool.acquire(minSize);
+        return new Lease(allocator.buffer(minSize));
     }
 
-    public final class Lease implements AutoCloseable {
-        private final Arena arena;
-        private final MemorySegment segment;
-        private final int capacity;
+    public static final class Lease implements AutoCloseable {
+        private final SegmentBuffer buffer;
 
-        private Lease(int capacity) {
-            this.capacity = capacity;
-            this.arena = Arena.ofConfined();
-            this.segment = arena.allocate(capacity);
+        private Lease(SegmentBuffer buffer) {
+            this.buffer = buffer;
         }
 
         public MemorySegment segment() {
-            return segment;
+            return buffer.segment();
         }
 
         public int capacity() {
-            return capacity;
+            return buffer.capacity();
         }
 
         @Release
         @Override
         public void close() {
-            pool.release(this); // back to pool; arena stays open for reuse
-        }
-
-        private void closeArena() {
-            arena.close();
+            buffer.release();
         }
     }
 }

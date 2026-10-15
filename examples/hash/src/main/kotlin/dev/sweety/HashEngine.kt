@@ -1,6 +1,7 @@
 package dev.sweety
 
-import dev.sweety.pool.Acquire
+import dev.sweety.math.pool.Acquire
+
 import java.lang.foreign.MemorySegment
 
 /**

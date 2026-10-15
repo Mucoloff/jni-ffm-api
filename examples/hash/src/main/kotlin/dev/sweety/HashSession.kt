@@ -1,7 +1,8 @@
 package dev.sweety
 
-import dev.sweety.pool.Pooled
-import dev.sweety.pool.Release
+import dev.sweety.math.pool.Pooled
+import dev.sweety.math.pool.Release
+
 import java.lang.AutoCloseable
 import java.lang.foreign.MemorySegment
 

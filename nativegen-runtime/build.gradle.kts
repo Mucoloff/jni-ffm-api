@@ -1,11 +1,12 @@
 plugins {
     `java-library`
-    kotlin("jvm") version "2.3.20"
     id("maven-publish")
 }
 
-kotlin {
-    jvmToolchain(25)
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(25))
+    }
 }
 
 publishing {

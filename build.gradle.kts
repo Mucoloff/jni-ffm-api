@@ -2,6 +2,7 @@
 // /:processor; runnable demos live under :examples:*; native cores under :native:*.
 subprojects {
     repositories {
+        mavenLocal()
         mavenCentral()
     }
     tasks.withType<JavaCompile>().configureEach {
